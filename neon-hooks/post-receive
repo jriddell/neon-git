@@ -1,0 +1,25 @@
+#!/usr/bin/env python
+#post-receive
+
+import sys
+import subprocess
+import os
+
+print "Neon post-receive"
+
+(old, new, remote_ref) = sys.stdin.read().split()
+
+cwd = os.getcwd().rsplit('/')
+repo = cwd[-1][:-4]
+if repo == "gitolite-admin": # don't do anything for admin archive
+   sys.exit(0)
+
+user = os.environ['GL_USER']
+
+if "neon" in remote_ref and not "debiangit" in user:
+   print "Pushing to Debian Git:"
+   branch = remote_ref.split("/")[2]
+   try:
+      subprocess.check_call('git push debian ' + branch, shell=True)
+   except subprocess.CalledProcessError:
+      print "push to Debian failed, ping Riddell to fix"

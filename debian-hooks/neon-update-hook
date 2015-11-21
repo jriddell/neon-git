@@ -1,0 +1,35 @@
+#!/usr/bin/env python
+#post-receive
+
+import sys
+import subprocess
+import os
+
+print "Debian post-receive neon-update-hook"
+
+old = sys.argv[1]
+new = sys.argv[2]
+remote_ref = sys.argv[3]
+
+neonRemote = False
+proc = subprocess.Popen(['git','remote'],stdout=subprocess.PIPE)
+for line in iter(proc.stdout.readline,''):
+   if line.rstrip() == "neon":
+      neonRemote = True
+
+if not neonRemote:
+   print "setting up neon remote"
+   cwd = os.getcwd().rsplit('/')
+   repo = cwd[-1][:-4]
+   subprocess.check_call(['git','remote', 'add', 'neon', 'gitolite3@neon:' + repo])
+   subprocess.check_call(['git','fetch', 'neon'])
+
+user = os.environ['USER']
+
+if not user == "jriddell-guest": # user which neon git server pushes as to stop endless loop
+    print "Pushing to Neon Git:"
+    branch = remote_ref.split("/")[2]
+    try:
+       subprocess.check_call('git push neon ' + branch, shell=True)
+    except subprocess.CalledProcessError:
+        print "push to Neon failed, ping Riddell to fix"
